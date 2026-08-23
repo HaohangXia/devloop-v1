@@ -1,0 +1,258 @@
+# 宪法 · 机械判据表
+#
+# ⛔ 这个文件是**给脚本读的**。给人读的那份在 constitution.md，两者靠条款 ID 对应。
+#    为什么分开：散文里「不得修改基线」这句话，脚本无法从中导出「哪些路径、
+#    什么判据、哪个时刻判」——要么编一个正则（判据的维度错了），要么根本不判
+#    （守卫的目标不存在）。两种都是假绿。
+#
+# ⚠️ 改这个文件之后必须重新锚定：
+#      devloop constitution anchor --project <路径>
+#    那是一条**需要你亲自执行**的命令。锚一旦能自愈，它就不是锚。
+
+schema = 1
+
+
+# ══ 受保护的真实文件 ═══════════════════════════════════════════
+# 判据：绝对路径的 SHA-256 逐项对账，**不依赖 git 跟踪状态**
+#      （所以对「.devloop/ 未被跟踪」的项目同样有效）。
+# 时刻：T0 派单前登记 · T5 跑完复验。
+#
+# ⛔ 这里写错路径会当场炸（load 会 raise）。这是故意的：
+#    清单写错**比没有清单更坏**——它会每次都报「无命中」，看起来一切正常，
+#    而实际上守卫保护的是一个空集合。
+
+[[protected_file]]
+clause = "A-1"
+title  = "不得修改闸"
+path   = ".devloop/gates.sh"
+
+[[protected_file]]
+clause = "A-1"
+title  = "不得修改宪法本身（判据表）"
+path   = ".devloop/constitution.toml"      # 自指：本文件在自己的清单里
+
+[[protected_file]]
+clause = "A-1"
+title  = "不得修改宪法本身（人读版）"
+path   = ".devloop/constitution.md"
+
+[[protected_file]]
+clause = "A-4"
+title  = "不得修改工人的规则摘要"
+path   = ".devloop/rules-digest.md"
+# ⚠️ rules-digest 是工人接收铁律的唯一渠道。第 3 轮审核指出它此前既不在
+#    A 类（路径不在工具本体里）也不在 B 类（修改不是删除）——分类盲区。
+
+[[protected_file]]
+clause = "A-4"
+title  = "不得修改项目配置"
+path   = ".devloop/config.toml"
+optional = true                            # 允许不存在（有些项目就是没有）
+
+
+# ══ 受保护的树内路径 ═══════════════════════════════════════════
+# 判据：**base 锚定的漂移**——拿派单前那个提交里的内容与工作区实际内容比对。
+#
+# ⚠️ 为什么不是 `git status`：工人把改动**提交掉**，工作区就干净了，
+#    任何基于 status 的判据都会说「没事」。base 锚定照样抓得到。
+# ⚠️ 匹配规则：`*` 不跨 `/`，`**` 跨，末尾 `/` 表示整个目录。
+#    ⛔ 守卫**过宽和过窄一样坏**：过窄漏抓；过宽天天误报，
+#    而天天误报会训练人去忽略上报，那比不上报更糟。
+
+# [[protected_tree]]
+# clause = "C-2"
+# title  = "不得改基线参考数据"
+# glob   = "tests/ref_*.json"
+
+# [[protected_tree]]
+# clause = "C-1"
+# title  = "不得改设计文档"
+# glob   = "01_设计文档/**"
+
+#  ⭐ **2026-08-03 取消注释**：`pyproject.toml` 在本仓**真实存在**，
+#     而这一条被注释着——于是 B-3a「不得修改依赖清单」在本仓**完全没人挡**。
+#  ⚠️ 工人在 worktree 里加一个依赖、或改 `requires-python`，宪法一声不吭，
+#     而那会改变整个项目的运行环境。
+#  ⛔ 另两条（`tests/ref_*.json` / `01_设计文档/**`）继续注释着是**对的**：
+#     它们的目标在本仓不存在，而宪法会拒绝匹配 0 个文件的 glob
+#     （「写错的模式会永远报『无命中』」）。
+[[protected_tree]]
+clause = "B-3a"
+#  ⚠️ **标题按射程写，不按意图写**（2026-08-03）。原文是「不得修改依赖清单」，
+#     而判据盖的是整个 `pyproject.toml`——给 pytest 加一条 filterwarnings
+#     也会 halt，上报却写「改了依赖清单」，⛔ 而 diff 里一个依赖字都没动。
+#     那句话字面为假，人会照着它去找根本不存在的改动。
+#  ⭐ 收窄判据（只读 project.dependencies 等段）要写新代码；先把话说准。
+title  = "不得修改 pyproject.toml（含依赖清单与构建/测试配置）"
+glob   = "pyproject.toml"
+
+
+# ══ 受保护的树内路径（本项目实际配置）══════════════════════════
+# devloop 自己有两处名副其实的**基线**——工人改它们等于改自己的考卷。
+
+[[protected_tree]]
+clause = "C-2"
+title  = "不得改评测集的标准答案"
+glob   = "devloop/evals/cases.jsonl"
+# ⚠️ 这是 20 道题的答案卷。工人改它 = 改自己的考卷，而分数看起来照样正常。
+
+[[protected_tree]]
+clause = "A-1"
+title  = "不得修改闸与宪法（worktree 内）"
+glob   = ".devloop/**"
+#  ⚠️ 运行产物（reports/ · jobs/ · handoff/ · autopilot/ · dossier/ ·
+#     telemetry.jsonl · findings.jsonl · tasks/fix-* · tasks/verify-*）
+#     由 `constitution._is_artifact` 排除——⛔ 那份名单写死在 Python 里，
+#     **不读 .gitignore**：工人对 .gitignore 和 info/exclude 都有写权限。
+
+[[protected_tree]]
+clause = "A-1"
+title  = "不得改动已有测试"
+glob   = "tests/**"
+#  ⭐ **分级**：改/删已有测试 = 命中；新建 `test_*.py` = 放行。
+#  ⚠️ 与 `gates.sh` 的「测试守卫」同一套语义——任务书经常**要求**工人写新测试，
+#     一刀切会每单必红，⛔ 而天天红的守卫等于没有守卫。
+#  ⚠️ 代价（诚实标注）：新增一个**非**测试文件到 tests/ 下也会被放行。
+#     那一格由「改已有」这一半和闸的测试守卫共同兜着，不是零覆盖。
+allow_added = true
+
+
+# ══ 判不了的条款 ═══════════════════════════════════════════════
+# ⛔ **必须逐条登记。** 每次判定的结论都会带上「未覆盖 N 条：…」的尾巴。
+#
+#    为什么这条是硬性的：不登记它们，`summary()` 就会印出一句
+#    **没有尾巴的「无宪法命中」**——而那句话会被读成「查过了，没事」，
+#    真相却是「查过的那部分没事，还有 N 条根本没查」。
+#    **那句话本身就是假绿。**
+
+#  ⭐ **2026-08-03 新增，当天被对抗复核改写。**
+#  ⛔ 初版写的是「check_refs 覆盖住了经过**具名远端**的推送」——**那句是假的**。
+#     实测 `git push origin HEAD:refs/tags/x` 走的正是具名远端，而本地
+#     一条 ref 都不动（git 只在 refspec 命中 remote.<name>.fetch 时才写
+#     跟踪 ref）。⚠️ 我用「挡住的那一小半」去描述整条，正是这条登记
+#     本来要防的事。
+#  ⚠️ 拆出来单列，是因为「C-3 有人挡了」这句话**对整条不成立**——
+#     不拆就等于用挡住的那一半，把没挡住的那一半盖掉。
+[[unjudged]]
+clause = "C-3b"
+status = "out-of-reach"
+why    = "**任何不写本地跟踪 ref 的 push**。⛔ 2026-08-03 对抗复核实测三条，全部零命中：① `git push origin HEAD:refs/tags/x`（走的是具名远端 origin，最普通的 push——git 只在 refspec 命中 remote.<name>.fetch 时才写跟踪 ref）② `git push origin HEAD:refs/leaks/x`（任意命名空间，同理）③ `git push <完整URL> …`（不经过具名远端）。⚠️ 再加一条**事后抹除**：推完 `git update-ref -d refs/remotes/origin/x`，或 `remote add → push → remote remove`——check_refs 是两点状态差，它看的每一处痕迹工人都写得动。与 B-4「对外发送」同族"
+degrade = "事前不给能力：受限执行环境（当前不具备）。⭐ 中间方案是**去问真远端**（T0/T5 各跑一次 `git ls-remote <每个具名远端>` 做集合差）——那是工人抹不掉的一侧，但只覆盖具名远端且要联网。⛔ 在做到之前，这条只能靠「无人值守时不给 full 档」间接收窄，见 refuse.full_tools_when_detached"
+
+#  ⭐ **2026-08-03 补登记。** C-1a 此前**一个清单都没进**，而它散文里标着
+#     `[judge: auto]`（自称有机械判据）。它是靠覆盖率测试的**同族豁免**
+#     （`C-1a` 归到 `C-1`、借 `C-1b` 的名额）溜过去的——三档相加 17、
+#     散文 18，⛔ 而那条测试是绿的。同族豁免已取消。
+[[unjudged]]
+clause = "C-1a"
+status = "no-target"
+why    = "判据本身机械可判（一条 `[[protected_tree]] glob = \"01_设计文档/**\"` 即可），但**本仓没有那个目录**，而宪法拒绝匹配 0 个文件的模式"
+degrade = "接入了设计文档目录的项目把那条 protected_tree 打开即可。⛔ 在打开之前，标注必须是实话——与 A-3「守卫的目标不存在」同族"
+
+[[unjudged]]
+clause = "A-2"
+status = "partial"
+why    = "白名单路径的指纹判得了；但工人有 Bash、cwd 不是牢笼，写到白名单之外不可枚举。⛔ **当前白名单只有 5 个 `.devloop/*`**——`~/.claude/settings.json`、后端注册表等**一条都没进**，而 `_abs()` 早就支持绝对路径（属于「能判但没人写」）"
+degrade = "白名单指纹（强但不完全）+ 诚实标注射程。⛔ 不得写成「已覆盖」。⚠️ 之所以**没有**把 `~/.claude/*` 加进来：那些文件由人日常编辑，加进去会让 A-1 天天误报，而天天红的守卫等于没有守卫——真要覆盖得先把「人改的」与「工人改的」分开，那需要新机制"
+
+[[unjudged]]
+clause = "A-3"
+status = "no-target"
+why    = "预算/重试/并发上限目前没有持久化状态——**受保护的目标根本不存在**"
+degrade = "先建 limits.toml 再谈守卫。现在写守卫 = 守卫的目标不存在"
+
+[[unjudged]]
+clause = "A-5"
+status = "none-by-design"
+why    = "「读闸」与「意图绕闸」无法从字节区分；读 gates.sh 是权限内正常动作"
+degrade = "让绕闸无效而非可检测：闸从仓库外只读副本执行 + 派单前指纹校验"
+
+[[unjudged]]
+clause = "B-3b"
+status = "out-of-reach"
+why    = "pip install 落 site-packages，不在任何仓库里"
+
+[[unjudged]]
+clause = "B-4"
+status = "out-of-reach"
+why    = "对外发送事后**零痕迹**：diff、台账、回执里都不留证据"
+degrade = "唯一手段是事前不给能力：[refuse] 硬拒 full+detach；无外网环境就绪前不得无人值守跑 full 档"
+
+[[unjudged]]
+clause = "C-1b"
+status = "human-sampled"
+why    = "同一个阈值 0.3→0.5 可能是实现细节也可能是设计决策，判据在意图里不在字节里"
+degrade = "只判路径半；语义半降级为贵模型逐条对账（采样，非全覆盖）"
+# ⛔ 特别禁止给它编启发式（「改动超 N 行 = 设计变更」）：那比没有判据更坏，
+#    因为它会产生一个**可信的绿**。
+
+[[unjudged]]
+clause = "C-7"
+status = "human-soft"
+why    = "「例外层自认拿不准」= 模型自述，直接撞铁律「完成由退出码裁决，不由模型自述」"
+degrade = "保留为软信号，但配硬对偶：例外层被触发次数 ≥ N 即停机（可判定，就是数数）"
+# ⛔ 绝不能写「例外层没喊停 = 没问题」。
+
+
+# ══ 起进程之前的硬拒 ═══════════════════════════════════════════
+
+[refuse]
+# `full` 比 `implement` 多的就是 WebFetch —— 无人值守 + 对外通道。
+# 而「对外发送」判不了（见 B-4），所以只能事前不给能力。
+full_tools_when_detached = true
+
+
+# ══ 判据在代码里的条款（2026-08-03 新增）═════════════════════════
+#
+# ⛔ **为什么要有第三档。**
+#
+# 实测：散文里 18 条，这份 toml 里有机械判据的 3 条、登记为判不了的 7 条
+# ——**剩下 6 条两边都没有**，而 `summary()` 那句尾巴印的是「未覆盖 7 条」。
+# ⚠️ 读的人会以为覆盖面比实际大，⛔ 而那句话本身就成了假绿。
+#
+# ⛔ 它们**不能**塞进 `[[unjudged]]`：那 6 条**是能判的**，判据只是不在这份
+#    文件里而在代码里。说成「判不了」是把账做平了，代价是一句**新的假话**。
+#
+# ⭐ 不变式：`[[protected_*]]` ∪ `[[unjudged]]` ∪ `[[judged_elsewhere]]`
+#    必须**划分**散文里的全部条款——由 `tests/test_constitution_coverage.py`
+#    钉住。⚠️ 那与 `telemetry.gate_buckets` 用的是同一条判据（各档相加等于总数），
+#    因为漏登的条款**不在任何清单里**，逐条断言永远查不到它。
+#
+# ⛔ `by` 必须写明**谁在挡**——不写就是一个无法核实的声明。
+
+[[judged_elsewhere]]
+clause = "B-1"
+title  = "删除文件或目录"
+by     = "constitution.check_files（受保护文件消失 → 报「（不存在）」，clause 记为该文件自身的 A-1/A-4）+ constitution.check_tree（worktree 内**受保护 glob 命中的**路径被删 → 报「被删除」）。⚠️ **射程**：glob 之外的删除不判——实测 rm -rf 一个未登记的目录，check_tree 返回 0 命中。⛔ 代码里没有任何一处产出 clause='B-1' 的 Hit"
+
+[[judged_elsewhere]]
+clause = "B-2"
+title  = "rebase / reset --hard / push --force / 删分支 / 改写既有引用"
+by     = "constitution.check_refs：T0 时**已存在**的 ref 被改写或消失即命中；新冒出来的引用另报（见 C-3）。+ tests/test_no_git_write_verbs.py：**编译期**扫 devloop/ 包内**字面量参数列表**。⛔ 两者的射程都要说清：check_refs 在并发下与 T0 之后新建的 ref 上收窄；静态检查绕得过 shell 字符串、变量子命令、os.system，且不覆盖 tools/ 与 gates.sh"
+
+#  ⛔ **2026-08-03 改写。** 原文声称由 `tests/test_no_git_write_verbs.py` 挡，
+#     理由是「全仓 devloop/*.py 里不许出现 push 作为 git 子命令」。
+#     ⚠️ 那是一条**静态检查**，管的是**工具自己的源码**——而 C-3 的主语是
+#     **工人的动作**，工人手里有 Bash。判据的**主语错了**。
+#  ⭐ 实测（对抗审计）：工人在 worktree 里
+#     `git push origin HEAD:refs/heads/leaked-branch` → 推送成功、
+#     本地新增 `refs/remotes/origin/leaked-branch` → 宪法 **0 条命中**。
+[[judged_elsewhere]]
+clause = "C-3"
+title  = "任何 push、以及合并到集成分支之外的分支"
+by     = "constitution.check_refs：T5 比对本地全部 ref 的集合差 + 远端清单（新增/改 URL/被删都报）。⛔ **射程窄，见 C-3b**：只抓得到「push 之后本地留下了跟踪 ref 且工人没抹掉」这一种。⚠️ 推 tag、推任意命名空间、推裸 URL、推完 update-ref -d，四种全部零命中——⛔ 不许把这条读成「经具名远端的推送已覆盖」。⚠️ 工具自身从不执行 push/merge，由 tests/test_no_git_write_verbs.py 静态钉住"
+
+[[judged_elsewhere]]
+clause = "C-4"
+title  = "任何触及用户主线或集成分支的 git commit"
+by     = "worktree.Worktree.commit_result 里的 worktree.BranchHijack 断言：提交前硬断言 HEAD == 本 worktree 的隔离分支，不符即抛。tests/test_worktree_hijack.py 钉住。⚠️ **射程 = 工具代为提交这一条路**；工人自行改写主线由 check_refs 事后报成 B-2"
+
+[[judged_elsewhere]]
+clause = "C-5"
+title  = "预算耗尽，或单任务重试 N 次仍失败"
+by     = "autopilot.check_limits 四条防线（次数/墙钟/算不出成本/预算）+ autopilot.plan_next 的 attempts >= retries 判出局。⛔ **射程**：默认的订阅制后端上 devloop.pricing 让成本恒为 0.0，于是「预算超支」与「算不出成本」两条**结构性恒假**——真正在挡的是 max_dispatches / max_wall_min / watchdog / 撞额度即停。美元预算只在 kind=api 的后端上有效"
+
+[[judged_elsewhere]]
+clause = "C-6"
+title  = "阶段完成 → 上报验收结论请人放行"
+by     = "autopilot.Stop.needs_human：done 之外全都要找人；cli.cmd_autopilot 收尾时退出码 3。⚠️ **射程**：done（阶段正常跑完）这一种情形 needs_human 为 False，由「工具从不 merge、只把命令印给人看」兜住——合回主线**始终**要人自己敲"

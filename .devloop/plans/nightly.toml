@@ -1,0 +1,49 @@
+# 阶段：验证接力（chain）在真跑里生效 —— 顺便把「昨夜简报」做出来
+#
+# ⭐ 这是 G-59 修复之后的**第一次真跑接力**。两单是真依赖：
+#   chain-a 建 devloop/nightly.py 与 branch_lines()
+#   chain-b **调用** branch_lines()，⛔ 任务书里明写「看不见就停下报告，
+#           不许自己重写一个顶上」——那正是本次要验的关键点。
+#
+# ⚠️ 不接力的话这个计划**必然失败**：chain-b 打开工作区会发现 nightly.py
+#    不存在。这就是判据：它跑通了，就说明接力真的生效了。
+#
+# ⛔ 合回主线仍要人逐单批准。⚠️ 接力之后两单是绑在一起的——
+#    chain-b 的分支里含着 chain-a 的提交，合最后一个就全拿到，
+#    但**不能只否掉 chain-a**。这是开 chain 的代价，已知并接受。
+
+[plan]
+version = 1
+
+[stage]
+id       = 'nightly'
+goal     = '做出「昨夜简报」，同时验证接力在真跑里生效'
+task_dir = '.devloop/tasks'
+base     = 'HEAD'
+chain    = true          # ⭐ 本次的主角
+
+[stage.budget]
+total_usd      = 0.50
+reserve_usd    = 0.10
+max_dispatches = 6
+max_wall_min   = 40
+watchdog_k     = 2
+default_max_turns = 120
+
+[stage.accept]
+require_pass = ['语法', '被测代码来源']
+
+[[task]]
+id      = 'chain-a'
+tools   = 'implement'
+retries = 2
+  [task.accept]
+  require_pass = ['测试守卫', 'pytest']
+
+[[task]]
+id      = 'chain-b'
+tools   = 'implement'
+retries = 2
+needs   = ['chain-a']
+  [task.accept]
+  require_pass = ['测试守卫', 'pytest']

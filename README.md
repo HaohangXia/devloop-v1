@@ -6,7 +6,7 @@
 > of the work, not as something to depend on — a successor project carries the
 > maintenance. See [SNAPSHOT.md](SNAPSHOT.md).
 >
-> Single-commit snapshot, not the history. **846 tests** (`python -m pytest`) — several
+> Single-commit snapshot, not the history. **846 tests / 846 条测试** (`python -m pytest`) — several
 > of them exist to prove a guard goes red, not just that it goes green. Most of the
 > text you are about to read was written by the workers rather than by me;
 > [SNAPSHOT.md](SNAPSHOT.md) says who wrote what, and what was left out.

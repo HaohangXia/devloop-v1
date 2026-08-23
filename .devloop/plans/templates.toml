@@ -1,0 +1,48 @@
+# 阶段：补上 templates/ 里缺的两份模板
+#
+# ⚠️ 这是**自动驾驶的第一次真跑**。挑这个阶段有三条理由：
+#   1. 它是真活——SPEC 的交付物清单里 templates/ 一直标着缺口
+#   2. 两单都只新建 templates/ 下的文件，闸的守卫（tests/ 与 .devloop/）碰不到
+#   3. 走的是完整链路：worktree → 宪法 T2 → 点名闸 → 固化到隔离分支
+#
+# ⛔ 合回主线仍然要人逐单批准——本阶段只把产出固化在隔离分支上。
+
+[plan]
+version = 1
+
+[stage]
+id       = 'templates'
+goal     = '补上 templates/task.md 与 templates/rules-digest.md 两份模板'
+task_dir = '.devloop/tasks'
+base     = 'HEAD'
+
+[stage.budget]
+# 依据：历史真实写任务单单成本 $0.0070–$0.0163（台账 3 行），耗时 63–124 秒。
+# 样本只有 3 行，所以这些数是**保守值不是标定值**。
+total_usd      = 0.30
+reserve_usd    = 0.06      # 单单成本的高分位 ×3 余量（⛔ 不是按平均留）
+max_dispatches = 6         # ⭐ 兜底：2 单 × 最多 3 次尝试。不依赖任何成本计算
+max_wall_min   = 25
+watchdog_k     = 2         # 2 单的阶段，连续 2 轮没进展就该停下问人
+default_max_turns = 120
+
+[stage.accept]
+# 阶段级验收：这四道闸必须**全部 PASS**。
+# ⛔ SKIP 不算过——被点名的检查没真正执行，就无从放行（G-53）。
+require_pass = ['语法', '测试守卫', '禁改清单', 'pytest']
+
+[[task]]
+id      = 'tpl-task'
+tools   = 'implement'
+retries = 2
+  [task.accept]
+  # 任务级点名：这几道必须绿。⚠️ 「被测代码来源」不点名——
+  # 它只在特定条件下出现，点一道可能不出现的闸会让守卫恒红。
+  require_pass = ['语法', '测试守卫', '禁改清单', 'pytest']
+
+[[task]]
+id      = 'tpl-rules'
+tools   = 'implement'
+retries = 2
+  [task.accept]
+  require_pass = ['语法', '测试守卫', '禁改清单', 'pytest']

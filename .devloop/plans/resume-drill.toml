@@ -1,0 +1,81 @@
+# 阶段：验**崩溃恢复**（`--resume`）—— 顺便把今天新增四个模块的文档欠账补上
+#
+# ## ⛔ 这个阶段要验的是什么
+#
+# `--resume` 至今**一次都没有真验过**（`_trials/eco-ob-01/50_关于工具的结论.md`
+# 的未验清单里挂着）。判据很具体：
+#
+#   1. 跑到中途**杀掉进程**
+#   2. `--resume` 起来之后，⛔ **已经过闸的单不许重派**（重派 = 白烧额度 + 重复分支）
+#   3. ⚠️ 进度必须**从台账重算**，不许信自己上次写的记录
+#      （`--resume` 的 help 原文就是这么写的）
+#
+# ## ⚠️ 这个阶段**验不了**并行派单
+#
+# `cmd_autopilot` 的派单循环是 `t = ready[0]` —— **每轮只取一单，严格串行**。
+# ⛔ 并行只存在于 `dispatch --parallel N`（模式 B，要打 `%task`）。
+# 这条已核实，别指望这份计划能覆盖它。
+#
+# ## 为什么挑这三单
+#
+# 都是**真活**：2026-08-01 一天加了 records / progress / audit / fanout
+# 四个模块，⛔ 文档一个字没更新。挑它们还有三条理由：
+#
+#   1. **三单互相独立**（各写各的文件，无依赖）—— 所以 `chain = false`。
+#      ⭐ 独立正是崩溃恢复要的形态：杀在第 2 单，第 1 单的产出不该受影响。
+#   2. **都只新建/只改文档**，闸的守卫（tests/ 与 .devloop/）碰不到，
+#      ⚠️ 不会因为守卫误报而让「恢复失败」和「任务本身失败」混在一起。
+#   3. 每单都有**可执行的自检**（解析 toml / TaskSpec.load / grep），
+#      ⛔ 不是「看起来写好了」。
+
+[plan]
+version = 1
+
+[stage]
+id       = 'resume-drill'
+goal     = '验 --resume 在真跑里生效；顺带补上四个新模块的文档欠账'
+task_dir = '.devloop/tasks'
+base     = 'HEAD'
+# ⛔ 明确关掉接力。三单互相独立，开了 chain 反而会把它们绑成一串
+#    （chain-b 的分支里含着 chain-a 的提交，就没法只否掉其中一单）。
+chain    = false
+# ⭐ G-66：一波同时派几单。三单互相独立且改动范围不重叠，正好用来验并行。
+parallel = 3
+
+[stage.budget]
+# 依据：台账里 devloop 自身的写任务，单单 $0.0070–$0.0163、63–124 秒（3 行样本）。
+# ⚠️ 样本仍然只有 3 行，所以这些是**保守值不是标定值**。
+# ⚠️ 而 2026-08-01 eco-ob 那单是订阅形态，cost_usd_real = 0.0 —— 订阅跑不消耗这个预算，
+#    ⛔ 所以 total_usd 在订阅后端下**拦不住任何东西**，真正兜底的是 max_dispatches。
+total_usd      = 0.30
+reserve_usd    = 0.06      # 单单成本的高分位 ×3（⛔ 不是按平均留——一单贵的就冲过头）
+max_dispatches = 9         # ⭐ 兜底：3 单 × 最多 3 次尝试。不依赖任何成本计算
+max_wall_min   = 35        # 依据：devloop 自身的闸约 40 秒（pytest 全套），比 eco-ob 快得多
+watchdog_k     = 2         # 3 单的阶段，连续 2 轮没进展就停下问人
+default_max_turns = 120    # 没用掉的轮数不花钱，所以给高不给低（G-46）
+
+[stage.accept]
+# ⛔ SKIP 与 VOID 都不算过——被点名的检查没真正验到东西，就无从放行。
+#    两者的区别见 devloop/gates.py::GateLine 的注释。
+require_pass = ['语法', 'pytest']
+
+[[task]]
+id      = 'r1-doc-audit'
+tools   = 'implement'
+retries = 2
+  [task.accept]
+  require_pass = ['语法', 'pytest']
+
+[[task]]
+id      = 'r2-doc-plan-tpl'
+tools   = 'implement'
+retries = 2
+  [task.accept]
+  require_pass = ['语法', 'pytest']
+
+[[task]]
+id      = 'r3-doc-spec-sync'
+tools   = 'implement'
+retries = 2
+  [task.accept]
+  require_pass = ['语法', 'pytest']

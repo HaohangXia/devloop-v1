@@ -1,0 +1,54 @@
+# 阶段：验证 2026-07-29 审计之后新接上的那几条线**在真跑里确实生效**
+#
+# ⛔ 为什么必须真跑：`--dry-run` 走不到 `check_tree`，也走不到 T5 与停批信号。
+#    这个项目自己的记录里就有一句「⚠️ 这个雷 --dry-run 抓不到——演练不走
+#    check_tree」。刚接上的三条（before / ws_before / halt）全在演练够不着的那段。
+#
+# 顺带**第一次真跑多任务依赖**（needs）——审计指出它从没在真跑里解析执行过，
+# 之前唯一那次自动驾驶真跑（templates）是单阶段、两单、零依赖。
+#
+# ⚠️ 已知限制，本次要顺带确认：每单的 worktree 都从**同一个 base** 建，
+#    所以 `needs` 只保证**先后顺序**，后一单**看不到**前一单的产出。
+#    两单因此设计成互相独立的小改动，不是「B 建立在 A 之上」。
+#
+# ⛔ 合回主线仍要人逐单批准——本阶段只把产出固化在隔离分支上。
+
+[plan]
+version = 1
+
+[stage]
+id       = 'wiring'
+goal     = '两个小改动，用来验证审计后新接的防线在真跑里生效'
+task_dir = '.devloop/tasks'
+base     = 'HEAD'
+
+[stage.budget]
+# ⚠️ 走订阅后端，美元成本恒为 0——所以 total_usd 这个数在默认后端上
+#    **不起作用**（pricing.py 有说明）。真正管用的是下面三条。
+total_usd      = 0.50
+reserve_usd    = 0.10
+max_dispatches = 6         # ⭐ 兜底：2 单 × 最多 3 次。不依赖任何成本计算
+max_wall_min   = 40        # ⚠️ 订阅跑 opus 比便宜模型慢，上次单单 43–114 秒
+watchdog_k     = 2
+default_max_turns = 120
+
+[stage.accept]
+# ⭐ 阶段级点名今天才真正生效（此前是一行代码都没读过的死配置）。
+#    这里**故意只写两道**、任务级再各写两道，好验证并集是不是真的生效——
+#    如果只吃到任务级，日志里就只会出现两道。
+require_pass = ['语法', '被测代码来源']
+
+[[task]]
+id      = 'q-hours'
+tools   = 'implement'
+retries = 2
+  [task.accept]
+  require_pass = ['测试守卫', 'pytest']
+
+[[task]]
+id      = 'p-total'
+tools   = 'implement'
+retries = 2
+needs   = ['q-hours']      # ⭐ 第一次在真跑里解析依赖
+  [task.accept]
+  require_pass = ['测试守卫', 'pytest']

@@ -1,0 +1,44 @@
+# 一份可跑的阶段计划实例（用 devloop 自己当靶子）
+#
+# ⚠️ 它的用途是**演练与回归**，不是真要跑这两单。
+#    `devloop autopilot --stage demo --dry-run` 会把「下一轮派什么、
+#    会不会当场被拦住」说清楚，且不花一分钱。
+
+[plan]
+version = 1
+
+[stage]
+id       = 'demo'
+goal     = '演练：验证自动驾驶的依赖调度、预算防线与验收点名都真的接上了'
+task_dir = '.devloop/tasks'
+base     = 'HEAD'
+
+[stage.budget]
+# ⚠️ 这几个数是**给演练用的保守值**，不是标定出来的。
+#    真实标定需要「写路径 + 闸」的样本，而现在只有 3 行台账。
+total_usd      = 0.20      # 依据：历史真实单单成本 p50 ≈ $0.019，留约 10 单的量
+reserve_usd    = 0.06      # 依据：单单成本的高分位（**不是平均**——按平均留，一单贵的就冲过头）
+max_dispatches = 6         # ⭐ 兜底：不依赖任何成本计算，算不出成本时它仍然能停住
+max_wall_min   = 30
+watchdog_k     = 3         # ⚠️ 保守的可解释初值，够一次「失败→重试→换法」的完整循环
+default_max_turns = 120    # 没用掉的轮数不花钱，所以给高不给低（G-46）
+
+[stage.accept]
+# 阶段级验收：点名的闸必须**全部 PASS**。
+# ⛔ SKIP 不算过——被点名的检查没真正执行，就无从放行（G-53）。
+require_pass = ['语法', 'pytest']
+
+[[task]]
+id    = 'L3'
+tools = 'readonly'
+  [task.accept]
+  # ⚠️ 只读单不建 worktree、不跑闸，所以没有机器判据——**必须显式认领理由**。
+  #    不强制这一条的话，「忘了写」和「确实没法机检」在文件里长得一模一样。
+  why = '只读单产出的是一份自然语言报告，没有可机检的结构；它的价值靠人读'
+
+[[task]]
+id    = 'L4'
+tools = 'readonly'
+needs = ['L3']
+  [task.accept]
+  why = '同上'

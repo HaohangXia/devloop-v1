@@ -1,0 +1,108 @@
+# 阶段：⭐⭐ **让工具自己修自己的待办**，同时第一次真验「无人值守」
+#
+# ## ⛔ 这一夜要回答的四个问题（都是今天答不上来的）
+#
+#   1. 无人值守能不能**连续跑起来** —— ⛔ 至今 **0 次**
+#      ⚠️ 07-29 那「20 小时 30 单」是手敲的（中间 3 处空档 7.5h / 11h / 1.5h）
+#   2. 撞额度停批（G-65）会不会真触发 —— 台账里 `ratelimit` **0 次**
+#   3. 跨 resume 的配额放大（G-90）是不是真的 —— 实测派 17 次 vs 上限 10
+#   4. 这个工具**能不能修自己的真待办**
+#
+# ⭐ 活不是编的：六单全部来自 `BACKLOG.md` 里还开着的那 13 条。
+#
+# ## ⛔ 为什么「跑一夜」以前从没成过（2026-08-16 查实）
+#
+# **不是机制问题，是没有一夜的活给它干。**
+# 现有 7 份计划里最长的一份只有 **3 单活、35 分钟**——
+# ⇒ 就算机制完美，它派完 2 单就正常结束退出了，**从来没有机会跑一夜**。
+# ⚠️ 而 `max_wall_min` **没有上限校验**（只查 `< 1`），想设 8 小时随时能设。
+#
+# ## ⛔⛔ 这一夜的刹车只有两个，别指望第三个
+#
+#   `max_dispatches`  ← ⭐ 硬刹车
+#   `max_wall_min`    ← ⭐ 硬刹车（`plan.clamp_to_wall` 会把每单死线收窄进剩余时间）
+#   `total_usd`       ← ⛔ **对订阅制恒不触发**：它读 `cost_usd_real`，
+#                          而订阅制那一栏恒等于 `0.0`（`pricing.real_cost_usd` 短路）。
+#                          ⚠️ 下面仍填了一个数，⛔ **但别把它当成钱的刹车** ——
+#                          它就是 G-65 那条「从没真触发过」的防线的一部分。
+#
+# ## ⛔ 开跑纪律
+#
+# - ⛔ **不许带 `--resume`**：G-90（配额放大）只在 resume 那条路上发作，
+#   而它正是本阶段第 2 单要验的东西 —— ⚠️ 别在验它之前先踩它。
+# - ⭐ 串行（`parallel` 不设 = 1）：这一夜只验**无人值守**一件事。
+#   ⛔ 并行已经真跑过 25 批，别把两件没验过的事绑在一起。
+# - ⛔ 不开 `chain`：六单互相独立，各改各的文件。
+
+[plan]
+version = 1
+
+[stage]
+id       = 'selfheal'
+goal     = '让工具自己修自己的待办，同时第一次真验无人值守能不能连续跑一夜'
+task_dir = '.devloop/tasks'
+base     = 'HEAD'
+
+[stage.budget]
+#  ⚠️ 见上：这一栏对订阅制**不是**钱的刹车。填它是为了让 G-65 那条防线有得可验。
+total_usd      = 40.00
+reserve_usd    = 5.00
+#  ⭐ 六单 × (1 次 + 1 次重试) = 12，再留 2 次余量。
+max_dispatches = 14
+#  ⭐⭐ 真正的一夜。⚠️ 这是**硬上界**：到点之后连正在跑的那一单也会被收窄死线。
+max_wall_min   = 480
+#  ⚠️ 连着 K 单没产出就停批 —— 免得整夜在同一堵墙上撞。
+watchdog_k     = 2
+default_max_turns = 120
+
+[stage.accept]
+#  ⭐ 每一单都必须过这两道：改的东西编得过、被测代码来自工位本身。
+require_pass = ['语法', '被测代码来源']
+
+#  ── 先修安全带（⛔ 这两条正是今晚在靠的东西）────────────────────
+
+[[task]]
+id      = 'sh-1'          # G-65 · 撞额度停批从没真触发过
+tools   = 'implement'
+retries = 1
+  [task.accept]
+  require_pass = ['测试守卫', 'pytest']
+
+[[task]]
+id      = 'sh-2'          # G-90 · 跨 resume 的配额放大
+tools   = 'implement'
+retries = 1
+  [task.accept]
+  require_pass = ['测试守卫', 'pytest']
+
+#  ── 再修「判据本身不可信」那一类（⚠️ 这类最贵）──────────────────
+
+[[task]]
+id      = 'sh-3'          # 代用品判据 → 行为判据
+tools   = 'implement'
+retries = 1
+  [task.accept]
+  require_pass = ['pytest']
+
+[[task]]
+id      = 'sh-6'          # G-126 · 只做红检没做绿检的守卫，点名 + 补 3 条
+tools   = 'implement'
+retries = 1
+  [task.accept]
+  require_pass = ['pytest']
+
+#  ── 最后是两条小的（⛔ 排在后面：跑不到就跑不到，不影响上面四条的结论）──
+
+[[task]]
+id      = 'sh-4'          # G-91 · 台账非法 UTF-8 静默通过
+tools   = 'implement'
+retries = 1
+  [task.accept]
+  require_pass = ['测试守卫', 'pytest']
+
+[[task]]
+id      = 'sh-5'          # G-92 · _HEADROOM_MB 无实测依据
+tools   = 'implement'
+retries = 1
+  [task.accept]
+  require_pass = ['测试守卫', 'pytest']
