@@ -1,0 +1,1 @@
+{"ts": "2026-07-27T23:52:46", "backend": "deepseek", "model": "deepseek-v4-pro[1m]", "n": 1, "only": "c01", "secs": 102.2, "by_kind": {"broken": [1, 1], "holds": [0, 0], "undecidable": [0, 0]}, "answers": [{"id": "c01", "want": "broken", "got": "broken", "ok": true, "severity": "", "turns": 19, "cost": 0.027673482, "failure": ""}]}

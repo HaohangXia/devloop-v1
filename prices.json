@@ -1,0 +1,29 @@
+{
+  "_source": "https://api-docs.deepseek.com/quick_start/pricing",
+  "_fetched": "2026-07-26",
+  "_warning": "回执里的 total_cost_usd 是 Claude Code 套用 Opus 价目表算的合成价，一律不用。按本表 × 回执原始 token 重算。",
+  "_caveat": "配置用的模型名是 deepseek-v4-pro[1m]（1M 上下文），价目表只列 deepseek-v4-pro。长上下文是否加价未确认——真钱以账单为准。",
+  "deepseek-v4-pro": {
+    "input_cache_miss_per_1m": 0.435,
+    "input_cache_hit_per_1m": 0.003625,
+    "output_per_1m": 0.87,
+    "_source": "https://api-docs.deepseek.com/quick_start/pricing",
+    "_fetched": "2026-07-26"
+  },
+  "deepseek-v4-flash": {
+    "input_cache_miss_per_1m": 0.14,
+    "input_cache_hit_per_1m": 0.0028,
+    "output_per_1m": 0.28,
+    "_source": "https://api-docs.deepseek.com/quick_start/pricing",
+    "_fetched": "2026-07-26"
+  },
+  "_note_opus": "Claude 子代理跑在订阅的 Opus 上。⚠️ 有意思的一点：Claude Code 给第三方端点算成本时套的正是这张 Opus 表——对 DeepSeek 是错的（G-28），对 Opus 自己反而是对的。C 臂因此可以直接用回执/会话记录里的 token × 本表。",
+  "claude-opus": {
+    "input_cache_miss_per_1m": 5.0,
+    "input_cache_hit_per_1m": 0.5,
+    "output_per_1m": 25.0,
+    "cache_write_5m_per_1m": 6.25,
+    "_source": "Claude Code 内部套用的价目表，13/13 回执逐字段精确吻合（2026-07-26 实证）",
+    "_caveat": "⚠️ 这是从 Claude Code 的计算反推出来的，不是从 Anthropic 官方定价页抄的。对外报数前应与官方页核对。"
+  }
+}

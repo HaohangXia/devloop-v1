@@ -1,0 +1,39 @@
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+
+# 各轮独立审查的原始回执——过程档案，体积大且不影响复现
+_review/r_*.json
+_review/p_*.txt
+
+# 工人回执与台账（每个接入项目自己的 .devloop/ 下也各有一份）
+.devloop/reports/
+.devloop/telemetry.jsonl
+
+# 工具自动在项目里建的两个目录——**运行产物，不是源码**
+# ⚠️ 漏了这两条的代价已经发生过：一次审查的探针在本仓库落下 handoff 目录，
+#    随后一次 `git add -A` 把它扫进了提交 f974cb2（3 个文件 124 行）。
+.devloop/jobs/
+.devloop/handoff/
+.devloop/autopilot/
+#  ⛔ 2026-08-03 补。加卷宗功能那天忘了这一行，后果比「被 git add 扫进去」重得多：
+#     卷宗每单一份写进 .devloop/dossier/，而没进这里 → `git status` 看得见它
+#     → 宪法 A-2「活工作区变了」从**第二单起每单命中** → 一夜十单，后九单
+#     全是误报。⭐ 与 G-93（findings.jsonl 漏了这一行）一模一样，
+#     而 dossier.py 的开头注释还专门写着「我避开了 G-93」。
+#  ⚠️ 判据已改成机械的：见 tests/test_runtime_dirs_ignored.py
+#     ——RUNTIME_DIRS 里的每一项都必须在这里有一行。
+.devloop/dossier/
+
+# 评审 agent 的临时脚本（它们在 _review/ 下工作时会留下这些）
+_review/_*_tmp.py
+
+# ⛔ 审计发现台账与它生成的任务书——**工具自动写进项目里的东西**。
+#    ⚠️ 不忽略的话：`cmd_audit` 一写 findings，活工作区就变了，而
+#    `cmd_autopilot` 的 `ws_before` **整个阶段只采一次**（cli.py），
+#    于是从第 2 单起每单命中宪法 A-2「活工作区变了」——**全阶段连坐**。
+#    ⭐ 与 G-71（记录守卫误判 autopilot 自己的运行记录）同一个形状。
+.devloop/findings.jsonl
+.devloop/tasks/fix-*.md
+.devloop/tasks/verify-*.md
