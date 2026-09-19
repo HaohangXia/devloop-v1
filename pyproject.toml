@@ -1,7 +1,7 @@
 [project]
 name = "devloop"
 version = "0.1.0"
-description = "Cost-tiered orchestration harness for AI coding agents"
+description = "AI coding-agent orchestration with separate worktrees, executable gates and run telemetry"
 requires-python = ">=3.11"
 dependencies = [
     "pydantic>=2.0",

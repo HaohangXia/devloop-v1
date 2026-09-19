@@ -2,6 +2,9 @@ __pycache__/
 *.py[cod]
 *.egg-info/
 .pytest_cache/
+.venv/
+build/
+dist/
 
 # 各轮独立审查的原始回执——过程档案，体积大且不影响复现
 _review/r_*.json

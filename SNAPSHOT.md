@@ -1,19 +1,23 @@
 # About this snapshot
 
-**This is a work archive, not a product.** DevLoop is v1 and it is archived: no
-issues, no roadmap, no undertaking to fix anything. A successor exists and is
-where the maintenance goes.
+**This is a historical work snapshot, not a product.** DevLoop is v1 and is no
+longer maintained here: no issues, no roadmap, no undertaking to fix anything.
+A separate project, [nonconstant](https://github.com/HaohangXia/nonconstant), continues
+the independent-verification direction without importing DevLoop code. The GitHub
+repository itself is not marked with GitHub's archived-state control. Publication
+maintenance (documentation, fixture minimisation and snapshot tests) does not imply
+that DevLoop v1 has resumed product development.
 
-The distinction is deliberate and it was the whole reason this was not published
-earlier — releasing something *as a product* carries a maintenance obligation,
-and publishing it *as a record of work* carries roughly none. This is the second
-thing. Read it, take what is useful, expect nothing.
+The purpose is to make the design decisions, implementation and limitations inspectable,
+not to offer a hosted service or promise ongoing compatibility with model providers.
 
-It is a single-commit snapshot of a working repository, not its history.
+It began as a squashed snapshot of a working repository, not a publication of
+that repository's full development history.
 
 ## Who wrote what
 
-The working repository has 190 commits. **Not one of them carries my name** —
+At the original snapshot point, the working repository had 190 commits. **Not one of
+those commits carried my name** —
 every author field reads `devloop-worker`, because that is the identity the
 workers commit under, and the workers wrote most of the text you are reading,
 including large parts of `README.md`.
@@ -49,7 +53,8 @@ and what that costs you.
 - `SPEC.md` — the contract: subcommands, exit codes, the gate protocol, file
   formats. `tests/test_docs_in_sync.py` fails the build when it drifts from the
   code, which is a property none of the other documents have.
-- `README.md` — how to make it do work, and what it will not do.
+- `README.md` — what was built, how to inspect the snapshot, its command surface
+  and its boundaries.
 - `TROUBLESHOOTING.md` — failures with their symptoms, and a column for the
   diagnoses that turned out to be wrong. That column is the useful part.
 - `CLAUDE.md` — the hard constraints, including the ones added after a rule
@@ -59,6 +64,15 @@ and what that costs you.
 
 ## What it does not do
 
-Read the `⛔ What this is not` block at the top of `README.md` before anything
-else. It kills the reason this project was originally started, using the
-project's own measurements. That block is not modesty; it is the current state.
+Read the measured cost comparison and `Boundaries` section in `README.md` before
+treating this snapshot as a reusable tool. The measurement rejects the project's
+original unqualified savings claim; the boundary section records what remains
+host-specific, historical or unproven.
+
+The September 2026 publication refresh adds bilingual navigation and snapshot CI, and
+minimises a captured quota-event fixture. The fixture preserves contract shape and
+rate-limit values; response text, identifiers, model names and usage amounts are
+illustrative substitutions. This is not a new live-model measurement. CI excludes no
+tests by name, but existing tests explicitly skip when their unpublished report corpus
+or original local target project is absent. No private development history, provider
+credentials or live host configuration is added by this refresh.

@@ -46,7 +46,7 @@ import pytest
 
 _ROOT = pathlib.Path(__file__).resolve().parent.parent
 _SPEC = _ROOT / "SPEC.md"
-_README = _ROOT / "README.md"
+_READMES = (_ROOT / "README.md", _ROOT / "README.zh-CN.md")
 # the internal planning doc is not part of the public snapshot; README carries the counts.
 
 #  ⛔ 白名单：每一条都要写清**为什么它不必进面向使用者的文档**。
@@ -101,11 +101,14 @@ def test_每个子命令都要在SPEC里有说明() -> None:
 
 def test_每个子命令都要在README里出现() -> None:
     """⚠️ README 是给外人看的第一眼——命令表漏一条，那条就等于不存在。"""
-    rd = _README.read_text(encoding="utf-8")
-    missing = [c for c in _subcommands()
-               if f"cli {c}" not in rd and f"devloop {c}" not in rd]
-    assert not missing, (
-        f"⛔ 这些子命令在 README.md 的命令表里没有：{missing}")
+    missing = {}
+    for readme in _READMES:
+        rd = readme.read_text(encoding="utf-8")
+        absent = [c for c in _subcommands()
+                  if f"cli {c}" not in rd and f"devloop {c}" not in rd]
+        if absent:
+            missing[readme.name] = absent
+    assert not missing, f"⛔ 这些 README 的命令表不完整：{missing}"
 
 
 # ── 开关 ──────────────────────────────────────────────────────────
@@ -147,8 +150,8 @@ def test_templates里每份文件都要被SPEC点名() -> None:
 def _claimed_counts() -> list[tuple[str, int]]:
     """把文档里「N 条测试」这种断言全找出来。"""
     out = []
-    for f in (_README,):
-        for m in re.finditer(r"(\d+)\s*条测试", f.read_text(encoding="utf-8")):
+    for f in _READMES:
+        for m in re.finditer(r"(\d+)\s*(?:tests|[条项]测试)", f.read_text(encoding="utf-8")):
             out.append((f.name, int(m.group(1))))
     return out
 
@@ -168,8 +171,11 @@ def test_文档里写的测试条数必须是真的() -> None:
     #     ⚠️ 那正是本仓第一种假绿：**守卫的目标不存在**，于是守卫报「没事」。
     #  ⭐ 判据改成：那句话必须在、且必须带一个数。数字消失本身就是缺陷，
     #     因为「35 单真跑、686 条测试」是拿来当**证据**用的一句话。
-    assert claimed, (
-        "⛔ README.md 里一处「N 条测试」都找不到。\n"
+    missing_claims = sorted(
+        f.name for f in _READMES if not any(name == f.name for name, _ in claimed)
+    )
+    assert not missing_claims, (
+        f"⛔ 这些 README 里一处「N 条测试」都找不到：{missing_claims}\n"
         "   ⚠️ 那句话是当证据用的；数字被删掉 = 证据没了，\n"
         "   ⛔ 而这条检查一旦对此 skip，它就成了自己要防的那种假绿。")
     #  ⛔ 真去数一遍。⚠️ 用 --collect-only 而不是跑全量：这条测试自己也在里面，
@@ -181,6 +187,9 @@ def test_文档里写的测试条数必须是真的() -> None:
         [sys.executable, "-m", "pytest", "--collect-only", "-q"],
         cwd=_ROOT, capture_output=True, text=True, encoding="utf-8",
         errors="replace")
+    assert r.returncode == 0, (
+        f"⛔ 测试收集失败，不能把部分收集结果当成完整计数：\n"
+        f"{r.stdout[-1500:]}\n{r.stderr[-500:]}")
     per_file = re.findall(r"^\S+\.py:\s*(\d+)\s*$", r.stdout, re.M)
     assert per_file, f"⛔ 数不出实际条数：{r.stdout[-300:]}"
     real = sum(int(x) for x in per_file)

@@ -167,7 +167,8 @@ def test_删掉之后真的能从包里恢复(tmp_path):
                    check=True, capture_output=True)
     r = subprocess.run(["git", "fetch", str(res[0].bundle),
                         "refs/heads/*:refs/heads/restored/*"],
-                       cwd=clone, capture_output=True, text=True)
+                       cwd=clone, capture_output=True, text=True,
+                       encoding="utf-8", errors="replace")
     assert r.returncode == 0, f"⛔ 从包里取不回来：{r.stderr}"
     got = subprocess.run(["git", "cat-file", "-t", sha], cwd=clone,
                          capture_output=True, text=True).stdout.strip()

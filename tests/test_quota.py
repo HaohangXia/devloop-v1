@@ -12,7 +12,9 @@
 ```
 
 `resetsAt` = 1785332400 → 2026-07-29 23:40:00 本地时间，**unix 秒**。
-真实样本存在 `tests/fixtures/stream_allowed.jsonl`（脱敏后原样保留）。
+真实样本中与解析契约有关的字段保存在
+`tests/fixtures/stream_allowed.jsonl`。本机路径、账号连接状态、插件、工具和命令清单等
+与测试无关的环境元数据均已删除；正文、标识符、模型名和用量替换为示意值。
 
 CLI 二进制里的 zod schema（权威取值集合）：
 
@@ -45,14 +47,22 @@ FIXTURES = Path(__file__).resolve().parent / "fixtures"
 
 # ══ 解析：从 stream-json 里同时取出回执与额度状态 ═══════════════
 
-def test_从真实事件流里同时取出回执和额度():
-    """⚠️ 用的是**真实抓到的**事件流，不是我编的形状。
+def test_从最小化真实事件流里同时取出回执和额度():
+    """⚠️ 用的是从**真实抓到的**事件流中保留的契约字段，不是猜出的形状。
 
     编造夹具的风险在这个项目上已经出过事：判据按想象中的形状写，
-    真数据一到就对不上。这份夹具是 2026-07-29 实跑存下来的。
+    真数据一到就对不上。这份夹具保留 2026-07-29 实跑样本中的相关事件与字段，
+    删除与解析断言无关的环境指纹，正文、标识符、模型名和用量使用示意值。
     """
     from devloop import quota
     raw = (FIXTURES / "stream_allowed.jsonl").read_text(encoding="utf-8")
+    events = [json.loads(line) for line in raw.splitlines() if line.strip()]
+    assert {event["type"] for event in events} == {"rate_limit_event", "result"}
+    assert not any(
+        key in event
+        for event in events
+        for key in ("cwd", "tools", "mcp_servers", "slash_commands", "agents")
+    ), "公开夹具不能重新带入宿主环境元数据"
     receipt, rl = quota.parse_stream(raw)
 
     assert receipt is not None, "必须能取出 result 事件当回执"
@@ -222,19 +232,22 @@ def test_opus专属上限要提示可以换模型():
     assert "换一个模型" not in rl2.advice(), "别给出换模型这种错建议"
 
 
-def test_真实result事件能直接构造回执():
+def test_最小化真实result事件能直接构造回执():
     """⛔ 换输出格式最容易踩的坑：**回执契约悄悄变了**。
 
     stream-json 的 result 事件比 json 版多了 `type` / `uuid` 等字段。
     如果 `Receipt` 对多余字段是严格的，换格式会让**每一单**都解析失败——
     而那要到真派单时才发现，那时钱已经花了。
 
-    ⚠️ 所以拿**真抓到的** result 事件直接构造一次 Receipt，别用简化夹具。
+    ⚠️ 所以拿**真抓到并按契约字段最小化的** result 事件直接构造一次 Receipt；
+    不保留本机或账户环境元数据。
     """
     from devloop.models import Receipt
     from devloop import quota
     raw = (FIXTURES / "stream_allowed.jsonl").read_text(encoding="utf-8")
     result, _ = quota.parse_stream(raw)
+    assert result["uuid"] == "00000000-0000-4000-8000-000000000001", \
+        "保留合成 UUID 扩展字段，才能继续检查 Receipt 接受 stream-json 多余字段"
     r = Receipt(**result)                      # 不该抛
     assert r.is_error is False
     assert r.models_used, "modelUsage 必须解析出来——模型核对靠它"
