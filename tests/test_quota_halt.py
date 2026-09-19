@@ -21,6 +21,7 @@
 from __future__ import annotations
 
 import json
+import time
 from pathlib import Path
 
 import pytest
@@ -34,6 +35,23 @@ def _receipt() -> Receipt:
     return Receipt(is_error=False, num_turns=1, total_cost_usd=0.0,
                    usage={"input_tokens": 10, "output_tokens": 5},
                    modelUsage={"claude-opus-4-7": {}})
+
+
+@pytest.fixture(autouse=True)
+def isolated_credentials(tmp_path: Path, monkeypatch):
+    """CLI 仍执行真实凭据检查，但输入只来自临时合成文件。
+
+    quota 用例替换了 dispatch_one，却曾漏隔离此前的凭据检查，因此本机靠
+    作者的登录状态碰巧通过，干净 CI 在到达停批逻辑前就退出。此处不 mock
+    check()、不接触真实 OAuth 文件，且下面另有缺凭据的拒派红检。
+    """
+    from devloop import credentials
+    credential_file = tmp_path / "synthetic-credentials.json"
+    credential_file.write_text(json.dumps({"claudeAiOauth": {
+        "expiresAt": int((time.time() + 3600) * 1000),
+        "subscriptionType": "test-fixture",
+    }}), encoding="utf-8")
+    monkeypatch.setattr(credentials, "CRED_FILE", credential_file)
 
 
 @pytest.fixture
@@ -66,6 +84,18 @@ def _run(proj: Path, monkeypatch, dispatcher, extra=()) -> tuple[int, list[str]]
                      "--task-dir", str(proj / ".devloop" / "tasks"),
                      "--tools", "readonly", *extra])
     return code, seen
+
+
+def test_缺少凭据时必须在派单前拒绝(proj, monkeypatch):
+    """隔离测试输入不能架空真实凭据守卫：缺文件必须拒派且不碰 worker。"""
+    from devloop import credentials
+    monkeypatch.setattr(credentials, "CRED_FILE", proj / "missing-credentials.json")
+    code, seen = _run(
+        proj, monkeypatch,
+        lambda task, n: DispatchResult(task.name, _receipt(), None),
+    )
+    assert code == 2
+    assert seen == [], "没有凭据不应到达被 mock 的工作进程"
 
 
 def test_撞了额度之后一单都不许再派(proj, monkeypatch):

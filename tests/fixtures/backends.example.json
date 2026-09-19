@@ -1,0 +1,20 @@
+{
+  "default": "subscription-example",
+  "aliases": {},
+  "backends": {
+    "subscription-example": {
+      "kind": "subscription",
+      "model": "example-model",
+      "price_key": "__subscription__",
+      "note": "Illustrative only. Subscription execution consumes the user's quota."
+    },
+    "metered-example": {
+      "kind": "api",
+      "base_url": "https://example.invalid/anthropic",
+      "model": "example-model",
+      "auth_token": "test-only-not-a-credential",
+      "enabled": false,
+      "note": "Paid API route: disabled in this test example; real use requires explicit configuration."
+    }
+  }
+}

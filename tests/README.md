@@ -15,6 +15,12 @@ and rate-limit values used by the contract tests; response text, identifiers, mo
 and usage amounts are replaced with illustrative values. Machine paths, account connections,
 installed tools and other unrelated environment metadata are removed before publication.
 
+Backend-policy tests load `fixtures/backends.example.json`, not the reader's private
+registry. Quota-control tests run the real credential check against temporary synthetic
+metadata and replace the worker call; no login or token is required. A negative test also
+checks that missing credentials stop dispatch before any worker is reached. These tests do
+not audit the configuration of a real machine.
+
 Run the current collection from the repository root:
 
 ```bash

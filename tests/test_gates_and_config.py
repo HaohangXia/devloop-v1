@@ -9,6 +9,7 @@
 from __future__ import annotations
 
 import json
+from pathlib import Path
 
 import pytest
 
@@ -504,21 +505,31 @@ def test_没有活作业时急停不报错(tmp_path):
 # ⚠️ **框架全留**——注册表、派单、隔离、闸、台账一行不动，
 #    随时可以 `--backend deepseek` 重新开测。停的是「默认」，不是「能力」。
 
-def test_花钱的后端必须带一句说明():
+@pytest.fixture
+def published_backend_registry(monkeypatch):
+    """验证公开示例的政策，不读取测试者的私有配置或凭据。"""
+    from devloop import backends
+    sample = Path(__file__).parent / "fixtures" / "backends.example.json"
+    assert sample.is_file(), "公开配置示例缺失，不能回退到本机配置"
+    monkeypatch.setattr(backends, "REGISTRY_FILE", sample)
+    reg = backends.load()  # 真实解析器，不替换成手造 Registry 对象
+    assert any(b.kind == "api" for b in reg.backends.values()), "示例必须覆盖收费路线"
+    return reg
+
+
+def test_花钱的后端必须带一句说明(published_backend_registry):
     """⛔ 用 api 后端 = 真花钱。注册表里必须有一句 note 说清代价，
     否则下一个人（或半年后的自己）会以为它是免费的默认选项。"""
-    from devloop import backends
-    reg = backends.load()
+    reg = published_backend_registry
     for name, b in reg.backends.items():
         if b.kind == "api":
             assert b.note, f"后端 {name} 是花钱的 api 路线，却没有 note"
 
 
-def test_默认后端不许是花钱的路线():
+def test_默认后端不许是花钱的路线(published_backend_registry):
     """⛔ 2026-07-28 裁决：默认不许直接花钱。
     要花钱必须**显式**写 `--backend <名字>`——让每一次花钱都是一次有意识的选择。"""
-    from devloop import backends
-    reg = backends.load()
+    reg = published_backend_registry
     assert reg.resolve(None).kind != "api", (
         f"默认后端是 {reg.default}（api = 花钱）。"
         f"默认应当是不直接产生费用的那条路。")

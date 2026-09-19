@@ -59,7 +59,7 @@ and credential boundary.
 
 ## Evidence, including a disproved hypothesis
 
-The snapshot currently collects **846 tests**. The number describes the repository's test
+The snapshot currently collects **847 tests**. The number describes the repository's test
 collection, not production usage or independent assurance. Several tests deliberately prove
 that a guard turns red; green-only tests would not establish that a gate can reject anything.
 
